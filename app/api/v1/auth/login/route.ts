@@ -2,7 +2,7 @@ import { loginSchema } from "@/lib/schema";
 import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
-import { deleteCookie, encryptToken, setCookie } from "@/lib/utils";
+import { encryptToken, setCookie } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,13 +36,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    // Update firstLogin to false on first login
-    if (user.firstLogin) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { firstLogin: false },
-      });
-    }
+   
 
     // Omit password from user object before tokenizing
     const { password: _pw, ...userWithoutPassword } = user;
@@ -51,17 +45,13 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60, // 7 days
     });
-    // Clear guest cookie if present
-    const impersonationCookieName =
-      process.env.NEXT_PUBLIC_IMPERSONATION_COOKIE_NAME!;
-    const impersonationCookieClear = deleteCookie(impersonationCookieName);
     // Login successful
     return Response.json(
       { message: "Login successful" },
       {
         status: 200,
         headers: {
-          "Set-Cookie": [userCookie, impersonationCookieClear].join(", "),
+          "Set-Cookie": [userCookie].join(", "),
         },
       }
     );

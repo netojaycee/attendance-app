@@ -24,7 +24,7 @@ export async function sendUserInvite(
   const loginLink = `${appUrl}/login`;
 
   try {
-    const emailHtml = render(
+    const emailHtml = await render(
       InviteEmail({
         firstName,
         // email,
@@ -52,7 +52,7 @@ export async function sendMagicLink(email: string, token: string): Promise<void>
   const magicLinkUrl = `${appUrl}/auth/magic-link?token=${token}`;
 
   try {
-    const emailHtml = render(
+    const emailHtml = await render(
       MagicLinkEmail({
         // email,
         url: magicLinkUrl,

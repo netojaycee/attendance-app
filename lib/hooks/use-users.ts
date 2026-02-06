@@ -3,7 +3,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { User } from "@prisma/client";
+import { User } from "@/prisma/generated/client";
 
 const QUERY_KEYS = {
   users: {

@@ -2,8 +2,8 @@
  * TanStack Query Hooks - Attendance
  */
 
+import { Attendance } from "@/prisma/generated/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Attendance } from "@prisma/client";
 
 const QUERY_KEYS = {
   attendance: {

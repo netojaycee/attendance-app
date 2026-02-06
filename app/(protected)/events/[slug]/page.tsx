@@ -81,6 +81,7 @@ function SessionItem({
   eventId,
   onAttendanceSubmitted,
 }: SessionItemProps) {
+  console.log(eventId)
   const [arrivalTime, setArrivalTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);

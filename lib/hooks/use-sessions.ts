@@ -3,7 +3,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Session } from "@prisma/client";
+import { Session } from "@/prisma/generated/client";
 import { getNextSessionAction } from "@/lib/actions/sessions.actions";
 
 const QUERY_KEYS = {

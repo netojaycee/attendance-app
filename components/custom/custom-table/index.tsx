@@ -114,7 +114,7 @@ export function CustomTable<T extends { [key: string]: any }>({
           {statusComponent && (
             // select component for status filter
             <Select
-              onValueChange={(value) => {
+              onValueChange={(_value: any) => {
                 // handle status change here, e.g., set a state
               }}
               defaultValue={statusOptions[0] || ""}
@@ -135,7 +135,7 @@ export function CustomTable<T extends { [key: string]: any }>({
           {methodsComponent && (
             // select component for status filter
             <Select
-              onValueChange={(value) => {
+              onValueChange={(_value: any) => {
                 // handle status change here, e.g., set a state
               }}
               defaultValue={methodsOptions[0] || ""}

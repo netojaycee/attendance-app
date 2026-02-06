@@ -2,8 +2,8 @@
  * TanStack Query Hooks - Events
  */
 
+import { Event, Session } from "@/prisma/generated/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Event, Session } from "@prisma/client";
 
 const QUERY_KEYS = {
   events: {

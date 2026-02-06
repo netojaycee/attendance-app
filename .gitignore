@@ -11,6 +11,7 @@
 !.yarn/versions
 
 prisma/generated/
+prisma/seed/
 # testing
 /coverage
 

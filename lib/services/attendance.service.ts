@@ -228,8 +228,8 @@ async function updateEventAttendanceSummary(
       where: { id: existingSummary.id },
       data: {
         cumulative: cumulativePercentage,
-        sessionsAttended: attendances.length,
-        lastUpdatedAt: new Date(),
+        // sessionsAttended: attendances.length,
+        // lastUpdatedAt: new Date(),
       },
     });
   } else {
@@ -239,8 +239,8 @@ async function updateEventAttendanceSummary(
         userId,
         eventId,
         cumulative: cumulativePercentage,
-        sessionsAttended: attendances.length,
-        lastUpdatedAt: new Date(),
+        // sessionsAttended: attendances.length,
+        // lastUpdatedAt: new Date(),
       },
     });
   }
@@ -295,11 +295,10 @@ export async function getEventAttendances(userId: string, eventId: string) {
       id: true,
       sessionId: true,
       arrivalTime: true,
-      attendancePercentage: true,
+      percentageScore: true,
       session: {
         select: {
           id: true,
-          title: true,
           startTime: true,
           endTime: true,
         },
@@ -336,8 +335,8 @@ export async function getEventAttendanceSummary(
     select: {
       id: true,
       cumulative: true,
-      sessionsAttended: true,
-      lastUpdatedAt: true,
+      // sessionsAttended: true,
+      // lastUpdatedAt: true,
       event: {
         select: {
           id: true,
@@ -368,9 +367,9 @@ export async function getUserEventAttendanceSummaries(userId: string) {
     },
     select: {
       id: true,
-      attendancePercentage: true,
-      sessionsAttended: true,
-      lastUpdatedAt: true,
+      cumulative: true,
+      // sessionsAttended: true,
+      // lastUpdatedAt: true,
       event: {
         select: {
           id: true,
