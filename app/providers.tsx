@@ -1,7 +1,6 @@
 /**
  * App Providers Component
  * Wraps the entire app with necessary providers:
- * - NextAuth SessionProvider
  * - TanStack Query QueryClientProvider
  * - React Hot Toast (Sonner)
  */
@@ -11,7 +10,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ReactNode, useState } from "react";
-import { AuthInitializer } from "@/components/local/auth-initializer";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -32,9 +30,7 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthInitializer>
-        {children}
-      </AuthInitializer>
+      {children}
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

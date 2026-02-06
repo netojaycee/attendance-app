@@ -6,7 +6,7 @@ import { getCurrentUserAction } from "@/lib/actions/auth.actions";
 
 /**
  * AuthInitializer component
- * Initializes user auth state once on app load and stores in Zustand
+ * Initializes user auth state once on app load from server action
  * User data is cached globally and accessible via useAuthStore throughout the app
  */
 export function AuthInitializer({ children }: { children: ReactNode }) {
@@ -23,6 +23,8 @@ export function AuthInitializer({ children }: { children: ReactNode }) {
             firstName: result.data.firstName as string,
             lastName: result.data.lastName as string,
             role: result.data.role as string,
+            voicePart: result.data.voicePart,
+            districtId: result.data.districtId,
           };
           initializeUser(authUser);
         } else {

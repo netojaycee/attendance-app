@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,14 +23,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { loginSchema, type LoginData } from "@/lib/schema";
-import { useLogin } from "@/lib/hooks/use-auth";
+import { loginAction } from "@/lib/actions/auth.actions";
 import { cn } from "@/lib/utils";
 import { SubmitButton } from "@/components/local/submit-button";
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { mutate: login, isPending } = useLogin();
+  const [isPending, setIsPending] = useState(false);
   const toastShownRef = useRef(false);
   const mountedRef = useRef(false);
 
@@ -68,17 +68,24 @@ export default function LoginPage() {
     }
   }, []);
 
-  const onSubmit = (data: LoginData) => {
-    login(data, {
-      onSuccess: () => {
+  const onSubmit = async (data: LoginData) => {
+    setIsPending(true);
+    try {
+      const result = await loginAction(data.email, data.password);
+      
+      if (result.success) {
         toast.success("Logged in successfully");
+        // Cookie is set, now redirect to dashboard
         router.push("/dashboard");
-      },
-      onError: (err: any) => {
-        console.log(err);
-        toast.error(err?.data?.error || "Login failed");
-      },
-    });
+      } else {
+        toast.error(result.error || "Login failed");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Login failed");
+    } finally {
+      setIsPending(false);
+    }
   };
 
   const handleGoogleLogin = () => {
