@@ -1,90 +1,4 @@
-// "use client";
 
-// import {
-//   Music,
-//   HomeIcon,
-//   Calendar,
-//   Settings,
-//   Bell,
-//   Timer,
-//   Send,
-//   MapPin,
-//   Clock,
-//   Info,
-//   Check,
-//   ChevronRight,
-//   Star,
-// } from "lucide-react";
-
-// export default function Home() {
-//   return (
-//     <div className="min-h-screen flex flex-col">
-//       {/* Navigation */}
-//       <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-700/50 px-6 py-3">
-//         <div className="max-w-7xl mx-auto flex items-center justify-between">
-//           {/* Logo */}
-//           <div className="flex items-center gap-3">
-//             <div className="bg-blue-500 p-2 rounded-lg">
-//               <Music className="text-white w-6 h-6" />
-//             </div>
-//             <h1 className="text-xl font-bold tracking-tight">ChoirSync</h1>
-//           </div>
-
-//           {/* Desktop Nav Links */}
-//           <div className="hidden md:flex items-center gap-8">
-//             <a href="#" className="text-blue-500 font-semibold text-sm flex items-center gap-2">
-//               <HomeIcon className="w-5 h-5" />
-//               Home
-//             </a>
-//             <a href="#" className="text-slate-500 dark:text-slate-400 font-medium text-sm hover:text-blue-500 transition-colors flex items-center gap-2">
-//               <Calendar className="w-5 h-5" />
-//               My Events
-//             </a>
-//             <a href="#" className="text-slate-500 dark:text-slate-400 font-medium text-sm hover:text-blue-500 transition-colors flex items-center gap-2">
-//               <Settings className="w-5 h-5" />
-//               Settings
-//             </a>
-//           </div>
-
-//           {/* Right Actions */}
-//           <div className="flex items-center gap-4">
-//             <button className="relative p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-//               <Bell className="w-5 h-5" />
-//               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-950"></span>
-//             </button>
-//             <div className="h-8 w-px bg-slate-200 dark:border-slate-700"></div>
-//             <div className="flex items-center gap-3">
-//               <div className="text-right hidden sm:block">
-//                 <p className="text-sm font-bold leading-none">Alex Johnson</p>
-//                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Tenor Member</p>
-//               </div>
-//               <div className="size-10 rounded-full bg-cover bg-center border-2 border-blue-500/20" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCywkteegorhtmv9vCvQnA7Foy1mPM8D9r39Kyuqb9u_irpWX0kCWTa6LNuk3GUFCBxAgre8m2e-NzsYnDyKC5d9rcsulolf7tGzQWkL8yZWXHJpcO5mjJlHQ3WQkkEm5_d87DdhcqxnW8Aa-3nc_WnCZ1XWj5zHxm732QN7OVnctDLbS9YqTkonMWGO6ncblp3AypPLN4PpywmQHE1Qge9m_SGbo8CM54uQ3aO7KEkhnwn25rSPW9w5S-uh4k7elnJQWyB06evr7lX")'}}>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       </nav>
-
-//       {/* Main Content */}
-//       <main className="flex-1 w-full max-w-7xl mx-auto p-6 md:p-8">
-//         <div className="flex flex-col lg:flex-row gap-8">
-//           {/* Left Column */}
-//           <div className="lg:w-[60%] space-y-6">
-//             {/* Welcome Header */}
-//             <header>
-//               <h2 className="text-3xl font-extrabold tracking-tight mb-2">Welcome back, Alex!</h2>
-//               <p className="text-slate-500 dark:text-slate-400">You&apos;re doing great. Don&apos;t forget to check in for tonight&apos;s rehearsal.</p>
-//             </header>
-
-//             {/* Event Card */}
-//             <div className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700/50 shadow-sm">
-//               <div className="relative h-64 bg-cover bg-center" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCXEfnYIWpTDmM1H86c3hglBnMk00osBG6MZABARYqiQ_0PjHYALFMx59YRdA__BBIu_NVK0HR9PMo0RJjEtZ1TZDeo25ey78wsv7_6aXuyhEoF5gZDtPCifvV6MPvwiORzArLOAXZknbN7Z48mJggGq5bNjZ7w-jPXDho8IfIjz9lEh-dIgRkeEjdgySSzGT1fpVHx1U5Gts2nnVF3vm1z2-Z7sOYPkKnO3_Kuama_WM9D9bndaa7at0getKQFV_O-lvzCbJathHfO")'}}>
-//                 <div className="absolute inset-0 bg-linear-to-t from-slate-900/80 to-transparent"></div>
-//                 <div className="absolute bottom-6 left-6">
-//                   <span className="px-3 py-1 rounded-full bg-blue-500 text-white text-xs font-bold uppercase tracking-widest">Active Now</span>
-//                   <h3 className="text-white text-3xl font-bold mt-2">Evening Rehearsal</h3>
-//                 </div>
-//               </div>
 //               <div className="p-8">
 //                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
 //                   {/* Event Details */}
@@ -257,8 +171,6 @@
 //   );
 // }
 
-import { redirect } from "next/navigation";
-
-export default function Page() {
-  redirect("/login");
+export default async function Home() {
+  return null;
 }

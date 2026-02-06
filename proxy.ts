@@ -30,6 +30,14 @@ export async function proxy(req: NextRequest) {
   // Get effective user info based on impersonation status
   const isAuthenticated = !!user; // User is authenticated if user cookie exists
 
+  // redirect away frm root route to login or dashboard based on auth status
+  if (pathname === "/") {
+    if (isAuthenticated) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    } else {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+  }
   // Check if route is public
   const isPublicRoute = publicRoutes.some((route) =>
     pathname.startsWith(route)

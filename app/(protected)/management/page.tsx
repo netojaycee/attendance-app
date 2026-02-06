@@ -4,6 +4,8 @@ import EventsManagement from "@/components/shared/events/EventsManagement";
 import DistrictManagement from "@/components/shared/district/DistrictManagement";
 import UsersManagement from "@/components/shared/user/UsersManagement";
 
+export const dynamic = "force-dynamic";
+
 export default function ManagementPage() {
   // const [searchQuery, setSearchQuery] = useState("");
 
