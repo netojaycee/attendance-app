@@ -1,0 +1,198 @@
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  DISTRICT_LEADER
+  PART_LEADER
+  MEMBER
+}
+
+enum VoicePart {
+  SOPRANO
+  ALTO
+  TENOR
+  BASS
+}
+
+enum EventType {
+  SINGLE_DISTRICT
+  MULTI_DISTRICT
+}
+
+model User {
+  id         String    @id @default(cuid())
+  firstName  String
+  lastName   String
+  email      String    @unique
+  password   String? // Hashed, null for social logins
+  voicePart  VoicePart
+  instrument String? // Optional
+  districtId String
+  role       Role      @default(MEMBER)
+  isPasswordChangeRequired Boolean   @default(true) // Flag for forced password change
+  isVerified Boolean   @default(false) // Email verification status
+  status     String    @default("pending") // pending, active, inactive
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  district            District             @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  attendances         Attendance[]         @relation("AttendanceUser")
+  attendanceCreatedBy Attendance[]         @relation("AttendanceCreatedBy")
+  attendanceUpdatedBy Attendance[]         @relation("AttendanceUpdatedBy")
+  eventsCreated       Event[]              @relation("Creator")
+  sessionsCreated     Session[]            @relation("SessionCreator")
+  passwordResetTokens PasswordResetToken[]
+  magicLinkTokens     MagicLinkToken[]
+  eventAttendanceSummaries EventAttendanceSummary[]
+
+  @@index([email])
+  @@index([districtId])
+  @@index([role])
+  @@map("users")
+}
+
+model District {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users    User[]
+  events   Event[]
+  sessions Session[]
+
+  @@map("districts")
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  type        EventType @default(SINGLE_DISTRICT)
+  slug        String    @unique
+  startDate   DateTime
+  endDate     DateTime? // Optional, may be unknown at creation
+  passMark    Int       @default(75) // Percentage required to pass, default 75
+  districtId  String? // Null for MULTI_DISTRICT, required for SINGLE_DISTRICT
+  creatorId   String
+
+  // Weekly constraint enforcement
+  weeklyConstraint Boolean @default(false)
+  // For multi-district: minimum minutes per week (default 240 = 4 hours, only used if weeklyConstraint is true)
+  minimumMinutesPerWeek Int @default(240)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  district District? @relation(fields: [districtId], references: [id], onDelete: SetNull)
+  creator  User      @relation("Creator", fields: [creatorId], references: [id])
+  sessions Session[]
+  attendanceSummaries EventAttendanceSummary[]
+
+  @@index([districtId])
+  @@index([creatorId])
+  @@index([type])
+  @@map("events")
+}
+
+model Session {
+  id              String   @id @default(cuid())
+  eventId         String
+  date            DateTime // Just the date, not time
+  startTime       DateTime // Full timestamp: date + start time
+  endTime         DateTime // Full timestamp: date + end time
+  durationMinutes Int // In minutes, e.g., 120 for 2h
+  districtId      String // Which district this session belongs to
+  createdById     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  district    District     @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  createdBy   User         @relation("SessionCreator", fields: [createdById], references: [id])
+  attendances Attendance[]
+
+  @@index([eventId])
+  @@index([districtId])
+  @@index([date])
+  @@map("sessions")
+}
+
+model Attendance {
+  id              String   @id @default(cuid())
+  userId          String
+  sessionId       String
+  arrivalTime     DateTime // Actual arrival timestamp
+  percentageScore Float // 0-100, calculated based on arrival time vs session start
+
+  // Audit trail - who made/last updated this entry
+  createdById String
+  updatedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User    @relation("AttendanceUser", fields: [userId], references: [id], onDelete: Cascade)
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdBy User    @relation("AttendanceCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?   @relation("AttendanceUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([userId, sessionId])
+  @@index([userId])
+  @@index([sessionId])
+  @@map("attendances")
+}
+
+model EventAttendanceSummary {
+  id         String  @id @default(cuid())
+  eventId    String
+  userId     String
+  cumulative Float // Total percentage for this event (0-100)
+  skip       Boolean @default(false) // Backdoor flag: true means admin granted direct entry
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@map("event_attendance_summaries")
+}
+
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("password_reset_tokens")
+}
+
+model MagicLinkToken {
+  id        String   @id @default(cuid())
+  email     String // Store email (user may not exist yet)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+
+  @@index([email])
+  @@index([token])
+  @@map("magic_link_tokens")
+}
