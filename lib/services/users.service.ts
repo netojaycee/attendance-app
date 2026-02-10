@@ -56,6 +56,7 @@ export async function getUsers(
     role?: string;
     voicePart?: string;
     search?: string;
+    status?: string;
   }
 ) {
   // Check if user can access this district
@@ -76,7 +77,7 @@ export async function getUsers(
 
   if (filters?.role) where.role = filters.role;
   if (filters?.voicePart) where.voicePart = filters.voicePart;
-
+  if (filters?.status) where.status = filters.status;
   // Search by first name or last name
   if (filters?.search) {
     where.OR = [
@@ -182,7 +183,8 @@ export async function createUser(
   }
 
   // Generate random password and hash it
-  const randomPassword = generateRandomPassword();
+  // const randomPassword = generateRandomPassword();
+  const randomPassword = 'password123'; // TODO: Remove hardcoded password and use generated one
   const hashedPassword = await hash(randomPassword, 10);
 
   // Create user

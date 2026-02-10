@@ -26,6 +26,7 @@ export async function getUsersAction(filters?: {
   role?: string;
   voicePart?: string;
   search?: string;
+  status?: string;
 }): Promise<ActionResult<any[]>> {
   try {
     const { user } = await getAppSession();
@@ -96,7 +97,7 @@ export async function createUserAction(
     }
 
     const newUser = await createUser(input, user);
-    revalidatePath("/management/users");
+    revalidatePath("/management");
 
     return {
       success: true,

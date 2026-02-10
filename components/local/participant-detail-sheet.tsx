@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { X, Clock, CheckCircle, AlertCircle, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getEventSessionsForUserAction } from "@/lib/actions/events.actions";
+import { submitAttendanceForUserAction } from "@/lib/actions/attendance.actions";
 
 interface SessionData {
   id: string;
@@ -17,6 +20,7 @@ interface SessionData {
   isFuture: boolean;
   score: number | null;
   hasAttendance: boolean;
+  arrivalTime?: string;
 }
 
 interface ParticipantDetailSheetProps {
@@ -25,6 +29,7 @@ interface ParticipantDetailSheetProps {
   participantName: string;
   isOpen: boolean;
   onClose: () => void;
+  userRole?: string;
 }
 
 function formatTime(date: Date): string {
@@ -43,8 +48,115 @@ function formatDateShort(date: Date): string {
   });
 }
 
-function SessionRow({ session }: { session: SessionData }) {
+function SessionRow({
+  session,
+  canEdit,
+  participantId,
+  onAttendanceUpdated,
+}: {
+  session: SessionData;
+  canEdit: boolean;
+  participantId: string;
+  onAttendanceUpdated: () => void;
+}) {
   const isMeetingScore = session.score ? session.score >= 80 : false;
+  const [isEditing, setIsEditing] = useState(false);
+  const [arrivalTime, setArrivalTime] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleEdit = () => {
+    if (session.hasAttendance && session.arrivalTime) {
+      // Pre-fill with existing arrival time
+      const arrivalDate = new Date(session.arrivalTime);
+      const hours = String(arrivalDate.getHours()).padStart(2, "0");
+      const minutes = String(arrivalDate.getMinutes()).padStart(2, "0");
+      setArrivalTime(`${hours}:${minutes}`);
+    } else {
+      setArrivalTime("");
+    }
+    setIsEditing(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!arrivalTime) {
+      setError("Please enter an arrival time");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError("");
+    try {
+      const arrivalDate = new Date(session.startTime);
+      const [hours, minutes] = arrivalTime.split(":");
+      arrivalDate.setHours(parseInt(hours), parseInt(minutes));
+
+      const result = await submitAttendanceForUserAction(
+        participantId,
+        session.id,
+        arrivalDate.toISOString(),
+      );
+      if (result.success) {
+        setIsEditing(false);
+        setArrivalTime("");
+        onAttendanceUpdated();
+      } else {
+        setError(result.error || "Failed to update attendance");
+      }
+    } catch (err) {
+      console.error("Error updating attendance:", err);
+      setError("Error updating attendance");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-start justify-between gap-4 p-3 bg-background border border-border rounded-lg">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground mb-3">
+            Update Arrival Time
+          </p>
+          <form onSubmit={handleSubmit} className="space-y-2">
+            <div className="flex gap-2">
+              <Input
+                type="time"
+                value={arrivalTime}
+                onChange={(e) => setArrivalTime(e.target.value)}
+                className="w-24 h-9 text-sm"
+                disabled={isSubmitting}
+              />
+              <Button
+                type="submit"
+                size="sm"
+                className="h-9 bg-primary hover:bg-primary/90"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Saving..." : "Save"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => {
+                  setIsEditing(false);
+                  setArrivalTime("");
+                  setError("");
+                }}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+            </div>
+            {error && <p className="text-xs text-red-600">{error}</p>}
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-start justify-between gap-4 p-3 bg-background border border-border rounded-lg">
@@ -92,6 +204,17 @@ function SessionRow({ session }: { session: SessionData }) {
           </div>
         )}
       </div>
+
+      {canEdit && (session.isPast || session.isCurrent) && session.hasAttendance && (
+        <Button
+          onClick={handleEdit}
+          variant="ghost"
+          size="sm"
+          className="shrink-0 text-primary hover:bg-primary/10"
+        >
+          <Edit2 className="w-4 h-4" />
+        </Button>
+      )}
     </div>
   );
 }
@@ -102,10 +225,16 @@ export function ParticipantDetailSheet({
   participantName,
   isOpen,
   onClose,
+  userRole,
 }: ParticipantDetailSheetProps) {
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshCount, setRefreshCount] = useState(0);
+
+  // Determine if user can edit (all roles except members)
+  const canEdit =
+    userRole && ["PART_LEADER", "DISTRICT_LEADER", "ADMIN"].includes(userRole);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -116,7 +245,7 @@ export function ParticipantDetailSheet({
       try {
         const result = await getEventSessionsForUserAction(
           eventId,
-          participantId
+          participantId,
         );
         if (!result.success) {
           setError(result.error || "Failed to fetch sessions");
@@ -139,12 +268,19 @@ export function ParticipantDetailSheet({
     };
 
     fetchSessions();
-  }, [isOpen, eventId, participantId]);
+  }, [isOpen, eventId, participantId, refreshCount]);
 
   if (!isOpen) return null;
 
   const upcomingSessions = sessions.filter((s) => s.isFuture);
-  const pastSessions = sessions.filter((s) => s.isPast);
+  const pastAndCurrentSessions = sessions
+    .filter((s) => s.isPast || s.isCurrent)
+    .sort((a, b) => {
+      // Current sessions first, then past sessions sorted by start time descending
+      if (a.isCurrent && !b.isCurrent) return -1;
+      if (!a.isCurrent && b.isCurrent) return 1;
+      return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
+    });
 
   return (
     <>
@@ -159,7 +295,9 @@ export function ParticipantDetailSheet({
         {/* Header */}
         <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
           <div className="min-w-0">
-            <p className="text-sm text-text-secondary">Viewing attendance for</p>
+            <p className="text-sm text-text-secondary">
+              Viewing attendance for
+            </p>
             <h2 className="text-lg font-bold text-foreground truncate">
               {participantName}
             </h2>
@@ -190,42 +328,78 @@ export function ParticipantDetailSheet({
             </div>
           ) : (
             <>
-              {/* Past Sessions */}
-              {pastSessions.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-3">
-                    Past Sessions ({pastSessions.length})
-                  </h3>
-                  <div className="space-y-2">
-                    {pastSessions.map((session) => (
-                      <SessionRow key={session.id} session={session} />
-                    ))}
-                  </div>
-                </div>
-              )}
+              <Tabs defaultValue="past" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 bg-muted">
+                  <TabsTrigger value="past" className="relative">
+                    Past
+                    {pastAndCurrentSessions.length > 0 && (
+                      <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-semibold bg-border text-text-secondary rounded-full">
+                        {pastAndCurrentSessions.length}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="upcoming" className="relative">
+                    Upcoming
+                    {upcomingSessions.length > 0 && (
+                      <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-semibold bg-primary text-foreground rounded-full">
+                        {upcomingSessions.length}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* Upcoming Sessions */}
-              {upcomingSessions.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-3">
-                    Upcoming Sessions ({upcomingSessions.length})
-                  </h3>
-                  <div className="space-y-2">
-                    {upcomingSessions.map((session) => (
-                      <SessionRow key={session.id} session={session} />
-                    ))}
-                  </div>
-                </div>
-              )}
+                {/* Past Sessions Tab */}
+                <TabsContent value="past" className="mt-4 space-y-2">
+                  {pastAndCurrentSessions.length > 0 ? (
+                    <div className="space-y-2">
+                      {pastAndCurrentSessions.map((session) => (
+                        <SessionRow
+                          key={session.id}
+                          session={session}
+                          canEdit={canEdit as any}
+                          participantId={participantId}
+                          onAttendanceUpdated={() =>
+                            setRefreshCount((c) => c + 1)
+                          }
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 px-4">
+                      <Clock className="w-8 h-8 text-text-secondary/50 mx-auto mb-3" />
+                      <p className="text-sm text-text-secondary">
+                        No past sessions
+                      </p>
+                    </div>
+                  )}
+                </TabsContent>
 
-              {sessions.length === 0 && (
-                <div className="text-center py-8 px-4">
-                  <Clock className="w-8 h-8 text-text-secondary/50 mx-auto mb-3" />
-                  <p className="text-sm text-text-secondary">
-                    No sessions found
-                  </p>
-                </div>
-              )}
+                {/* Upcoming Sessions Tab */}
+                <TabsContent value="upcoming" className="mt-4 space-y-2">
+                  {upcomingSessions.length > 0 ? (
+                    <div className="space-y-2">
+                      {upcomingSessions.map((session) => (
+                        <SessionRow
+                          key={session.id}
+                          session={session}
+                          canEdit={false}
+                          participantId={participantId}
+                          onAttendanceUpdated={() =>
+                            setRefreshCount((c) => c + 1)
+                          }
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 px-4">
+                      <Clock className="w-8 h-8 text-text-secondary/50 mx-auto mb-3" />
+                      <p className="text-sm text-text-secondary">
+                        No upcoming sessions
+                      </p>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </>
           )}
         </div>

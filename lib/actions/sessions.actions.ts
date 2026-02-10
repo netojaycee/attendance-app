@@ -42,7 +42,8 @@ export async function getSessionsAction(filters?: {
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch sessions",
+      error:
+        error instanceof Error ? error.message : "Failed to fetch sessions",
     };
   }
 }
@@ -104,7 +105,7 @@ export async function createSessionAction(input: {
         endTime: input.endTime,
         districtId: input.districtId,
       },
-      user
+      user,
     );
 
     revalidatePath("/management/events", "page");
@@ -117,7 +118,8 @@ export async function createSessionAction(input: {
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to create session",
+      error:
+        error instanceof Error ? error.message : "Failed to create session",
     };
   }
 }
@@ -132,7 +134,7 @@ export async function updateSessionAction(
     endTime?: string;
     durationMinutes?: number;
     status?: string;
-  }
+  },
 ) {
   try {
     const { user } = await getAppSession();
@@ -143,6 +145,9 @@ export async function updateSessionAction(
         error: "Unauthorized",
       };
     }
+
+      console.log("Updating session with input:", { sessionId, ...data, user });
+
 
     const result = await updateSession(sessionId, data, user);
 
@@ -156,7 +161,8 @@ export async function updateSessionAction(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to update session",
+      error:
+        error instanceof Error ? error.message : "Failed to update session",
     };
   }
 }
@@ -179,8 +185,8 @@ export async function getNextSessionAction() {
 
     const session = await prisma.session.findFirst({
       where: {
-        startTime: {
-          gte: now,
+        endTime: {
+          gte: now, // Session hasn't ended yet
         },
         districtId: user.role === "ADMIN" ? undefined : user.districtId,
       },
@@ -205,7 +211,8 @@ export async function getNextSessionAction() {
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch next session",
+      error:
+        error instanceof Error ? error.message : "Failed to fetch next session",
     };
   }
 }
@@ -235,7 +242,8 @@ export async function deleteSessionAction(sessionId: string) {
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to delete session",
+      error:
+        error instanceof Error ? error.message : "Failed to delete session",
     };
   }
 }
@@ -257,24 +265,21 @@ export async function getEventSessionsWithAttendanceAction(identifier: string) {
     // Get all sessions for this event
     const sessions = await prisma.session.findMany({
       where: {
-      event: {
-        OR: [
-        { id: identifier },
-        { slug: identifier },
-        ],
-      },
-      // Only show sessions in user's district if not admin
-      ...(user.role !== "ADMIN" && { districtId: user.districtId }),
+        event: {
+          OR: [{ id: identifier }, { slug: identifier }],
+        },
+        // Only show sessions in user's district if not admin
+        ...(user.role !== "ADMIN" && { districtId: user.districtId }),
       },
       select: {
-      id: true,
-      startTime: true,
-      endTime: true,
-      durationMinutes: true,
-      date: true,
+        id: true,
+        startTime: true,
+        endTime: true,
+        durationMinutes: true,
+        date: true,
       },
       orderBy: {
-      startTime: "asc",
+        startTime: "asc",
       },
     });
 
@@ -320,7 +325,7 @@ export async function getEventSessionsWithAttendanceAction(identifier: string) {
           score: attendance?.percentageScore ?? null,
           hasAttendance: !!attendance,
         };
-      })
+      }),
     );
 
     return {

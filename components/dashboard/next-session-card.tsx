@@ -4,12 +4,15 @@ import { useEffect, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Calendar, Clock, Timer } from "lucide-react";
+import { Calendar, Clock, Timer, CheckCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { submitAttendanceAction } from "@/lib/actions/attendance.actions";
+import {
+  submitAttendanceAction,
+  getAttendanceAction,
+} from "@/lib/actions/attendance.actions";
 import { useNextSession } from "@/lib/hooks/use-sessions";
 import { useAuthStore } from "@/lib/stores/auth-store";
 
@@ -36,9 +39,12 @@ export function NextSessionCard() {
   const { data: sessionData, isLoading } = useNextSession();
   const [message, setMessage] = useState("");
   const [isSessionStarted, setIsSessionStarted] = useState(false);
+  const [hasSubmittedAttendance, setHasSubmittedAttendance] = useState(false);
+  const [isCheckingAttendance, setIsCheckingAttendance] = useState(false);
+  const [submittedScore, setSubmittedScore] = useState<number | null>(null);
 
   const session = sessionData?.data as Session | undefined;
-
+  console.log(session, "session");
   const {
     register,
     handleSubmit,
@@ -55,20 +61,43 @@ export function NextSessionCard() {
     setIsSessionStarted(now >= startTime);
   }, []);
 
+  // Check if user has already submitted attendance
+  const checkAttendanceSubmission = useCallback(async (sessionId: string) => {
+    setIsCheckingAttendance(true);
+    try {
+      const result = await getAttendanceAction(sessionId);
+      // If attendance is found (exists in database), user has already submitted
+      setHasSubmittedAttendance(result.success && !!result.data);
+      if (result.success && result.data) {
+        setSubmittedScore((result.data as any).percentageScore ?? null);
+      }
+    } catch (error) {
+      console.error("Error checking attendance:", error);
+    } finally {
+      setIsCheckingAttendance(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!session) return;
     //eslint-disable-next-line
     checkSessionStart(session); // initial
+    checkAttendanceSubmission(session.id);
 
     const interval = setInterval(() => {
       checkSessionStart(session);
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [session, checkSessionStart]);
+  }, [session, checkSessionStart, checkAttendanceSubmission]);
 
   const onSubmit = async (data: AttendanceFormData) => {
     if (!session) return;
+
+    if (hasSubmittedAttendance) {
+      setMessage("You have already submitted attendance for this session");
+      return;
+    }
 
     if (!isSessionStarted) {
       setMessage("You can only submit attendance once the session has started");
@@ -80,10 +109,14 @@ export function NextSessionCard() {
       const [hours, minutes] = data.arrivalTime.split(":");
       arrivalDate.setHours(parseInt(hours), parseInt(minutes));
 
-      const result = await submitAttendanceAction(session.id, arrivalDate.toISOString());
+      const result = await submitAttendanceAction(
+        session.id,
+        arrivalDate.toISOString(),
+      );
 
       if (result.success) {
         setMessage("Attendance submitted successfully!");
+        setHasSubmittedAttendance(true);
         reset();
       } else {
         setMessage(result.error || "Failed to submit attendance");
@@ -239,7 +272,26 @@ export function NextSessionCard() {
                 Mark Attendance
               </label>
 
-              {!isSessionStarted && (
+              {hasSubmittedAttendance && (
+                <div className="space-y-3">
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-3 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
+                    <p className="text-sm text-green-800 dark:text-green-200">
+                      You have already submitted attendance for this session
+                    </p>
+                  </div>
+                  {submittedScore !== null && (
+                    <div className="bg-primary/10 border border-primary/30 rounded-md p-3">
+                      <p className="text-sm text-text-secondary mb-2">Score</p>
+                      <p className="text-2xl font-bold text-primary">
+                        {Math.round(submittedScore)}%
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!isSessionStarted && !hasSubmittedAttendance && (
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md p-3">
                   <p className="text-sm text-amber-800 dark:text-amber-200">
                     ⏰ Attendance opens when the session starts at{" "}
@@ -253,7 +305,11 @@ export function NextSessionCard() {
                   <Timer className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
                   <Input
                     type="time"
-                    disabled={!isSessionStarted}
+                    disabled={
+                      !isSessionStarted ||
+                      hasSubmittedAttendance ||
+                      isCheckingAttendance
+                    }
                     placeholder="e.g. 6:45 PM"
                     className="pl-10 disabled:opacity-50 disabled:cursor-not-allowed"
                     {...register("arrivalTime")}
@@ -261,10 +317,19 @@ export function NextSessionCard() {
                 </div>
                 <Button
                   type="submit"
-                  disabled={isSubmitting || !isSessionStarted}
+                  disabled={
+                    isSubmitting ||
+                    !isSessionStarted ||
+                    hasSubmittedAttendance ||
+                    isCheckingAttendance
+                  }
                   className="bg-primary hover:bg-primary/90 text-slate-900 font-bold px-6 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? "Submitting..." : "Submit"}
+                  {isSubmitting
+                    ? "Submitting..."
+                    : hasSubmittedAttendance
+                      ? "Submitted"
+                      : "Submit"}
                 </Button>
               </form>
 
@@ -279,7 +344,9 @@ export function NextSessionCard() {
                   className={`text-xs italic ${
                     message.includes("success")
                       ? "text-green-600"
-                      : "text-red-600"
+                      : message.includes("already")
+                        ? "text-green-600"
+                        : "text-red-600"
                   }`}
                 >
                   {message}

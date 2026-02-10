@@ -81,10 +81,10 @@ function SessionItem({
   eventId,
   onAttendanceSubmitted,
 }: SessionItemProps) {
-  console.log(eventId)
+  console.log(eventId);
   const [arrivalTime, setArrivalTime] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState(session.hasAttendance);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,6 +149,25 @@ function SessionItem({
           </div>
         )}
 
+        {session.isCurrent && submitted && session.score !== null && (
+          <div className="mt-2 flex items-center gap-2">
+            <div
+              className={`flex items-center gap-1 text-xs font-semibold ${
+                isMeetingScore
+                  ? "text-primary"
+                  : "text-orange-600 dark:text-orange-400"
+              }`}
+            >
+              {isMeetingScore ? (
+                <CheckCircle className="w-3.5 h-3.5" />
+              ) : (
+                <AlertCircle className="w-3.5 h-3.5" />
+              )}
+              Score: {Math.round(session.score)}%
+            </div>
+          </div>
+        )}
+
         {session.isPast && !session.hasAttendance && (
           <div className="mt-2 flex items-center gap-2 text-xs text-text-secondary">
             <AlertCircle className="w-3.5 h-3.5" />
@@ -195,14 +214,7 @@ function SessionItem({
         </form>
       )}
 
-      {submitted && (
-        <div className="flex gap-2 items-center text-xs font-semibold text-primary shrink-0 bg-primary/10 px-2 py-1.5 rounded">
-          <CheckCircle className="w-3.5 h-3.5" />
-          Submitted
-        </div>
-      )}
-
-      {session.isCurrent && session.hasAttendance && (
+      {(submitted || (session.isCurrent && session.hasAttendance)) && (
         <div className="flex gap-2 items-center text-xs font-semibold text-primary shrink-0 bg-primary/10 px-2 py-1.5 rounded">
           <CheckCircle className="w-3.5 h-3.5" />
           Marked
@@ -472,6 +484,7 @@ export default function EventDetailPage() {
           participantName={selectedParticipantName}
           isOpen={!!selectedParticipantId}
           onClose={handleCloseDetail}
+          userRole={user?.role}
         />
       )}
     </div>

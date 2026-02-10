@@ -730,6 +730,7 @@ export async function getEventSessionsForUserAction(
           isFuture: isSessionFuture,
           score: attendance?.percentageScore ?? null,
           hasAttendance: !!attendance,
+          arrivalTime: attendance?.arrivalTime,
         };
       }),
     );
@@ -743,6 +744,103 @@ export async function getEventSessionsForUserAction(
       success: false,
       error:
         error instanceof Error ? error.message : "Failed to fetch sessions",
+    };
+  }
+}
+
+/**
+ * Get events with statistics for analytics page
+ */
+export async function getEventsWithStatsAction() {
+  try {
+    const { user } = await getAppSession();
+
+    if (!user?.id) {
+      return {
+        success: false,
+        error: "Unauthorized",
+      };
+    }
+
+    // Get all events for the user's district (or all if admin)
+    const events = await prisma.event.findMany({
+      where: user.role === "ADMIN" ? {} : { districtId: user.districtId },
+      select: {
+        id: true,
+        title: true,
+        startDate: true,
+        endDate: true,
+        sessions: {
+          select: {
+            id: true,
+            startTime: true,
+            endTime: true,
+            _count: {
+              select: {
+                attendances: true,
+              },
+            },
+          },
+        },
+        attendanceSummaries: {
+          select: {
+            cumulative: true,
+          },
+        },
+      },
+      orderBy: { startDate: "desc" },
+    });
+
+    // Enrich with calculated stats
+    const eventsWithStats = events.map((event) => {
+      const now = new Date();
+      const isCompleted = event?.endDate ? event.endDate < now : false;
+      const isActive = event?.startDate <= now && (event?.endDate ? event.endDate >= now : true);
+      const _isUpcoming = event?.startDate > now;
+
+      const status = isCompleted
+        ? "completed"
+        : isActive
+          ? "active"
+          : "upcoming";
+
+      // Calculate total participants and average score
+      const summaries = (event.attendanceSummaries as any[]) || [];
+      const totalParticipants = summaries.length;
+      const avgScore =
+        totalParticipants > 0
+          ? Math.round(
+              (summaries.reduce((sum, s) => sum + (s.cumulative || 0), 0) /
+                totalParticipants) *
+                100,
+            ) / 100
+          : 0;
+
+      return {
+        id: event.id,
+        title: event.title,
+        date: event.startDate.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+        status: status as "completed" | "active" | "upcoming",
+        avgScore,
+        participantCount: totalParticipants,
+      };
+    });
+
+    return {
+      success: true,
+      data: eventsWithStats,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch events with stats",
     };
   }
 }

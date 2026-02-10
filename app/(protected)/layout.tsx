@@ -1,4 +1,3 @@
-"use client";
 
 import { BottomNavigation } from "@/components/dashboard/bottom-navigation";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";

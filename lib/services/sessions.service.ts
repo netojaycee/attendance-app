@@ -217,6 +217,7 @@ export async function updateSession(
   input: UpdateSessionInput,
   user: UserContext
 ) {
+  console.log("Updating session with input:", { sessionId, ...input, user });
   // Fetch the session
   const session = await prisma.session.findUnique({
     where: { id: sessionId },

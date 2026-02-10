@@ -6,6 +6,7 @@
  */
 
 import { getAppSession } from "@/lib/session";
+import { revalidatePath } from "next/cache";
 import {
   submitAttendance,
   getAttendance,
@@ -33,6 +34,54 @@ export async function submitAttendanceAction(
     }
 
     const result = await submitAttendance(user.id, sessionId, arrivalTime);
+
+    // Revalidate the dashboard to refresh progress and session data
+    revalidatePath("/dashboard", "layout");
+
+    return {
+      success: true,
+      data: result.attendance,
+      message: result.message,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to submit attendance",
+    };
+  }
+}
+
+/**
+ * Submit attendance for another user (leaders/admins only)
+ * Used when editing/resubmitting attendance for a participant
+ */
+export async function submitAttendanceForUserAction(
+  participantId: string,
+  sessionId: string,
+  arrivalTime: string
+) {
+  try {
+    const { user } = await getAppSession();
+
+    if (!user?.id) {
+      return {
+        success: false,
+        error: "Unauthorized",
+      };
+    }
+
+    // Only leaders and admins can submit for other users
+    if (!["PART_LEADER", "DISTRICT_LEADER", "ADMIN"].includes(user.role)) {
+      return {
+        success: false,
+        error: "You do not have permission to submit attendance for other users",
+      };
+    }
+
+    const result = await submitAttendance(participantId, sessionId, arrivalTime);
+
+    // Revalidate the dashboard to refresh progress and session data
+    revalidatePath("/dashboard", "layout");
 
     return {
       success: true,

@@ -7,7 +7,7 @@ import {
 import { notFound } from "next/navigation";
 
 export default async function UsersManagement() {
-  const resultUsers = await getUsersAction();
+  const resultUsers = await getUsersAction({ status: "active" });
   const resultPendingUsers = await getPendingUsersAction();
   if (!resultPendingUsers.success || !resultPendingUsers.data) {
     notFound();

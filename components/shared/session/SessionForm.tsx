@@ -96,6 +96,12 @@ export default function SessionForm({
       const endDateTime = new Date(data.endTime).toISOString();
 
       if (isEdit) {
+        console.log("Updating session with data:", {
+          startTime: startDateTime,
+          endTime: endDateTime,
+          durationMinutes: data.durationMinutes,
+          sessionId: session.id,
+        });
         const result = await updateSessionAction(session.id, {
           startTime: startDateTime,
           endTime: endDateTime,
